@@ -134,6 +134,47 @@ around two thousand a second, which is enough on its own to make the meters
 stutter on a page whose whole point is that nothing stutters. Read once, on
 mount.
 
+### A new custom domain looks exactly like a failed deploy for 30 minutes
+
+First deploy, 2026-08-28. `wrangler deploy` reported success and attached
+`quickdaw.stoatworks-labs.com`, every asset served HTTP 200 with the right
+sizes and content types — and the site would not load in a browser on this Mac.
+
+The cause was a **negatively cached DNS answer**. Something looked the hostname
+up in the seconds around the record being created, got NXDOMAIN, and macOS's
+`mDNSResponder` held that answer. The zone's SOA minimum is **1800 seconds**, so
+the wrong answer outlives the deploy by half an hour.
+
+What makes it hard to spot is that `dig` says everything is fine. `dig` talks to
+the resolver directly and bypasses the OS cache; `getaddrinfo` — which is what
+curl, every browser and everything else actually uses — does not. The two
+disagreeing is the signature:
+
+```
+dig +short quickdaw.stoatworks-labs.com          -> 104.21.84.34 172.67.185.208
+python3 -c "import socket; socket.getaddrinfo('quickdaw.stoatworks-labs.com',443)"
+                                                 -> nodename nor servname provided
+```
+
+Diagnose by comparing those two, and by fetching the origin with the resolver
+stepped over entirely:
+
+```bash
+curl -sI --resolve 'quickdaw.stoatworks-labs.com:443:104.21.84.34' \
+  https://quickdaw.stoatworks-labs.com/
+```
+
+A 200 there means the deploy is fine and the problem is local. The fix is to
+flush the cache (needs a password, so a human runs it) or to wait out the 1800
+seconds:
+
+```bash
+sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+```
+
+**Do not redeploy in response to this.** Nothing about a redeploy touches the
+cached answer, and the deploy was never the problem.
+
 ## Follow-ups, deliberately not done yet
 
 - **`about-data.js` is a hand-written placeholder.** Every other repo's copy is
