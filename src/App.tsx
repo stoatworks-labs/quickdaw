@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { Setup } from './components/Setup';
 import { Transport } from './components/Transport';
 import { TrackList } from './components/TrackList';
+import { MeterBridge } from './components/MeterBridge';
 import { TakePanel } from './components/TakePanel';
 import { isolationAvailable, recorder } from './lib/recorder';
 import { player } from './lib/player';
@@ -253,6 +254,15 @@ export default function App() {
         onDevice={(id) => void chooseDevice(id)}
         onPickDirectory={() => void pickDirectory().then(setDirectory).catch(() => {})}
         onChange={(patch) => store.set(patch)}
+      />
+
+      {/* Above the transport on purpose: "is signal arriving?" is the question
+          people ask immediately before pressing record, so the answer belongs
+          between the setup and the button. */}
+      <MeterBridge
+        tracks={store.tracks}
+        channels={recorder.channels}
+        opening={busy || recorder.status === 'opening'}
       />
 
       <Transport

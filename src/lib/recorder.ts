@@ -204,12 +204,19 @@ export class Recorder {
       await ctx.audioWorklet.addModule(WORKLET_URL);
 
       const open = await openDevice(deviceId, probed.channels || 2);
-      this.stream = open.stream;
-
       const source = ctx.createMediaStreamSource(open.stream);
+      this.stream = open.stream;
       // The source node's own count is the authority: it is what the graph will
       // actually deliver, and it can be lower than the track admitted to.
-      const channels = Math.max(1, Math.min(open.channels, source.channelCount || open.channels));
+      // The track's own setting is the authority, and `source.channelCount` is
+      // NOT a second opinion on it — for a source node it is an *input*-side
+      // mixing property, and a source node has no inputs. On a
+      // MediaStreamAudioSourceNode it reads 2 no matter how many channels the
+      // stream actually carries, so clamping to it silently caps every
+      // interface at two inputs. (A ChannelMergerNode makes the same point
+      // loudly: its channelCount is fixed at 1 while its output has as many
+      // channels as it has inputs.)
+      const channels = Math.max(1, open.channels);
       this.source = source;
 
       const frames = Math.round((preRollSeconds + WRITE_HEADROOM_SECONDS) * ctx.sampleRate);

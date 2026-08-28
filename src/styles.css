@@ -174,6 +174,59 @@ input[type='range'] {
   min-width: 70px;
 }
 
+/* --- meter bridge -------------------------------------------------------- */
+
+.bridge {
+  padding: 14px 18px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.bridge.empty-bridge {
+  padding: 14px 18px;
+}
+
+.bridge-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.bridge-head h2 {
+  margin: 0;
+}
+
+.bridge-head .hint {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+/* Tall enough that the top 24 dB — the part anyone is actually reading — is
+   worth more than a few pixels, and the scale labels do not collide. */
+.bridge-canvas {
+  display: block;
+  width: 100%;
+  height: 132px;
+  cursor: pointer;
+}
+
+/* Present for a screen reader, absent for everyone else. `display: none` would
+   take it out of the accessibility tree as well, which defeats the point. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* --- transport ---------------------------------------------------------- */
 
 .transport {

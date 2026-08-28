@@ -140,6 +140,20 @@ looks exactly like one that was honoured.
 channels means the browser folding a 16-input interface into a surround layout
 and handing the worklet a mix rather than the inputs.
 
+### `source.channelCount` is not the channel count
+
+`AudioNode.channelCount` is an **input**-side mixing property. A source node has
+no inputs, so on a `MediaStreamAudioSourceNode` it reads **2 regardless of how
+many channels the stream carries** — the output width comes from the track, not
+from this. An early version clamped with
+`Math.min(open.channels, source.channelCount)`, which silently capped every
+interface at two inputs no matter what was plugged in.
+
+`track.getSettings().channelCount` is the authority, and `openDevice` already
+reads it. A `ChannelMergerNode` makes the same point loudly rather than
+silently: its `channelCount` is fixed at 1 and cannot be assigned, while its
+output has as many channels as it has inputs — which is how this was found.
+
 ### The context is created at the device's rate
 
 The device is opened twice: once to be interrogated (a `MediaStreamTrack` is the
@@ -156,6 +170,18 @@ If the input goes away, `inputs[0]` arrives empty. The processor still advances
 the write pointer by a full quantum of silence. Not advancing would be far
 worse: the recording would omit the missing time, so every track would end up
 shorter than the take and everything after the interruption would sit early.
+
+### The meter bridge and the track rows must agree
+
+Both draw the same signal, so both read `meterPosition` for the geometry and
+`lib/theme.ts` for the colours and the banding. Do not give either its own
+scale or its own palette: two meters that nearly agree read as a fault in one of
+them, and a grid drawn at even spacing over bars that use a curve produces a
+meter that looks precise and lies.
+
+`SCALE_MARKS.map(meterPosition)` is a trap worth knowing — `map` passes the
+index as the second argument, which `meterPosition` takes as its dB floor. Call
+it through an arrow.
 
 ### The engines live outside React
 

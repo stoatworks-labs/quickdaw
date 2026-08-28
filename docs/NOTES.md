@@ -134,6 +134,29 @@ around two thousand a second, which is enough on its own to make the meters
 stutter on a page whose whole point is that nothing stutters. Read once, on
 mount.
 
+### `source.channelCount` capped every interface at two inputs
+
+Found 2026-08-28 while building the meter bridge, and it would have made the
+whole app useless on any real interface.
+
+`recorder.open()` decided the channel count with
+`Math.min(open.channels, source.channelCount || open.channels)`. That looks like
+sensible defensiveness — take the smaller of what the track claims and what the
+node reports — and it is wrong, because `AudioNode.channelCount` is an
+**input**-side mixing property. A source node has no inputs. On a
+`MediaStreamAudioSourceNode` it reads 2 whatever the stream carries, so a
+16-input interface would have produced two tracks, quietly, with no error.
+
+It surfaced only because the synthetic source used to test the meters is a
+`ChannelMergerNode`, whose `channelCount` is fixed at 1 and **throws** when
+assigned. The same wrong assumption fails loudly there and silently on the real
+path. Without a multichannel interface to hand, that throw was the only thing
+that was ever going to catch it.
+
+`track.getSettings().channelCount` is the authority. There is still no test for
+this — it needs a real multichannel stream, which is the first thing to check in
+the hardware session.
+
 ### A new custom domain looks exactly like a failed deploy for 30 minutes
 
 First deploy, 2026-08-28. `wrangler deploy` reported success and attached

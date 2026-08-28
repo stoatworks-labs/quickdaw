@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 dist/
 .DS_Store
 *.local
@@ -6,3 +6,6 @@ dist/
 .wrangler/
 coverage/
 tsconfig.tsbuildinfo
+
+# Per-session worktrees live here (see the worktree guard in ~/.claude/hooks).
+.claude/

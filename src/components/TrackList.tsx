@@ -17,6 +17,7 @@
 import { useEffect, useRef } from 'react';
 import { recorder, SILENCE_DB } from '../lib/recorder';
 import { formatDb, meterPosition } from '../lib/format';
+import { levelColour, meterColours } from '../lib/theme';
 import type { Level, Track } from '../types';
 
 interface Props {
@@ -24,27 +25,6 @@ interface Props {
   recording: boolean;
   onChange: (input: number, patch: Partial<Track>) => void;
   onClearSolo: () => void;
-}
-
-/**
- * Colours read from the stylesheet so the meter cannot drift from the theme.
- *
- * Read once, on mount, and not per frame. `getComputedStyle` forces a style
- * recalculation, and calling it for every channel on every animation frame is
- * around two thousand forced recalculations a second — enough on its own to
- * make the meters stutter, on a page whose entire point is that nothing
- * stutters.
- */
-function meterColours(el: Element) {
-  const s = getComputedStyle(el);
-  return {
-    back: s.getPropertyValue('--meter-back').trim() || '#15181d',
-    low: s.getPropertyValue('--meter-low').trim() || '#3ba55d',
-    mid: s.getPropertyValue('--meter-mid').trim() || '#d8b13a',
-    high: s.getPropertyValue('--meter-high').trim() || '#d1453b',
-    hold: s.getPropertyValue('--meter-hold').trim() || '#e6ebf2',
-    rms: s.getPropertyValue('--meter-rms').trim() || '#8ea6c8',
-  };
 }
 
 export function TrackList({ tracks, recording, onChange, onClearSolo }: Props) {
@@ -84,12 +64,20 @@ export function TrackList({ tracks, recording, onChange, onClearSolo }: Props) {
         ctx.fillStyle = c.back;
         ctx.fillRect(0, 0, w, h);
 
+        // The two marks worth having on a bar this small: -18 is comfortable,
+        // -6 is close. Same scale function as the bridge, so a level that sits
+        // on a line here sits on the same line there.
+        ctx.fillStyle = c.grid;
+        for (const mark of [-18, -6]) {
+          ctx.fillRect(Math.round(meterPosition(mark) * w), 0, dpr, h);
+        }
+
         // Peak bar, coloured by where its top is rather than as a gradient: the
         // point of the colour is to say which band the level is in, and a
         // gradient says that only at the very tip while implying it about the
         // whole bar.
         const peak = meterPosition(level.peakDb) * w;
-        ctx.fillStyle = level.peakDb > -3 ? c.high : level.peakDb > -18 ? c.mid : c.low;
+        ctx.fillStyle = levelColour(level.peakDb, c);
         ctx.fillRect(0, 0, peak, h);
 
         // RMS as a second, shorter bar inside the first. Peak says whether it

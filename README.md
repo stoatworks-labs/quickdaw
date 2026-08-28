@@ -7,9 +7,10 @@
 > mixer's solo and pan rules — and the central invariant, that a take is the same length as the
 > time it covers with every sample at the position it was captured at, is tested by driving a
 > producer and a consumer against each other through deliberate stalls. Both AudioWorklets have
-> been driven in a real browser from a synthetic source, and the header-patching the file format
-> depends on has been checked against the real filesystem API, coming back bit-exact and readable
-> by the browser's own decoder. It has **not** been run against a real multichannel interface, or
+> been driven in a real browser from a synthetic source — which is how a bug that would have capped
+> every interface at two inputs was found — and the header-patching the file format depends on has
+> been checked against the real filesystem API, coming back bit-exact and readable by the browser's
+> own decoder. It has **not** been run against a real multichannel interface, or
 > against a microphone at all: the channel mapping, the sample-rate matching, the disk throughput
 > and the long-take behaviour are correct by construction and by test, and unproven against
 > hardware.
@@ -27,6 +28,10 @@ gives you one track per input, mapped 1:1, streamed straight to a folder on your
   `take.json`. Nothing is held in memory waiting for a stop.
 - **32-bit float or 24-bit**, at the interface's own sample rate, with no resampling and none of
   the browser's voice processing.
+- **Metering before you commit to anything.** A meter bridge across every input, live from the
+  moment the interface opens — before arming, before recording — with peak, RMS, peak hold, a
+  latching clip flag and a dB scale. Each track row carries its own meter and numeric readout for
+  setting a level on one input.
 - **Playback** of any take in the session, streamed from the files, with per-track gain, pan, mute
   and solo.
 
