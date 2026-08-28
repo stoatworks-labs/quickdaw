@@ -20,6 +20,14 @@ gives you one track per input, mapped 1:1, streamed straight to a folder on your
 
 **[quickdaw.stoatworks-labs.com](https://quickdaw.stoatworks-labs.com)**
 
+![QuickDaw recording eight inputs from its own generated test signal — the meter bridge
+across the top, one named track per input below, and a 60-second pre-roll buffer
+armed](docs/screenshots/hero.png)
+
+*The built-in test signal, so this is the app metering audio it generated itself
+through the same worklet, ring and writer a live interface uses. Input 1 is the 1 kHz
+reference and reads -18.0, which is the check worth making before trusting any of it.*
+
 - **One track per input.** The interface's channel count is read from the device and the track
   list is built from it. Name the tracks, disarm the ones you do not want.
 - **Pre-roll buffer.** With it on, every input is held continuously — 30 seconds by default, up to
