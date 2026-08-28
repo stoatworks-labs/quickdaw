@@ -296,6 +296,16 @@ export default function App() {
         </p>
       )}
 
+      {/* Everything is connected and one click away from running. Saying so is
+          the whole point: a silent meter bridge with no explanation is
+          indistinguishable from a broken one. */}
+      {recorder.needsGesture && (
+        <p className="warn" role="status">
+          The browser will not start audio until you interact with the page. Click anywhere to
+          start the meters.
+        </p>
+      )}
+
       <Setup
         devices={devices}
         deviceId={store.deviceId}

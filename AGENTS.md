@@ -149,6 +149,23 @@ stream immediately. Constraining it to a device or a channel count can fail on
 its own merits and report itself as a permission problem, which sends people
 looking in entirely the wrong place.
 
+### `ctx.resume()` does not reject — it never settles
+
+A browser will not start an AudioContext without a user gesture, and Chrome's
+way of saying so is **not** to reject. `resume()` returns a promise that simply
+never settles until activation arrives. `await`ing it bare means `open()` never
+returns, the UI sits on "Opening the device…" for ever, and nothing is thrown,
+logged or reported.
+
+`startContext` bounds the wait, builds the graph anyway — it is perfectly valid,
+just silent — and resumes on the next real interaction through a one-shot
+listener. `recorder.needsGesture` is how the UI says so, because a silent meter
+bridge with no explanation is indistinguishable from a broken one.
+
+Found by screenshotting the deployed app with headless Chrome, where there is no
+gesture and never will be. It is reachable in a real browser too, on a restored
+tab or a page opened in the background.
+
 ### Capture constraints must all be off
 
 `echoCancellation`, `noiseSuppression` and `autoGainControl` default to *on*,

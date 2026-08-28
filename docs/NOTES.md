@@ -230,6 +230,21 @@ sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
 **Do not redeploy in response to this.** Nothing about a redeploy touches the
 cached answer, and the deploy was never the problem.
 
+### "Opening the device…" for ever
+
+Found 2026-08-28 while taking the release screenshot with headless Chrome.
+
+`open()` awaited `ctx.resume()`. Without a user gesture Chrome does not reject
+that promise — it leaves it pending indefinitely — so `open()` never returned,
+`busy` stayed true, and the app sat on "Opening the device…" with no error
+anywhere. A hang with no diagnostic is the worst shape a failure can have, and
+this one is invisible in normal use because choosing from a `<select>` is itself
+a gesture.
+
+Bounded now, with the graph built regardless and a one-shot listener that
+resumes on the next interaction. Reachable outside automation too: a restored
+tab, or a page opened in a background tab, starts suspended the same way.
+
 ## The generated test signal, added 2026-08-28
 
 Offered twice and declined by silence, then added when it became load-bearing:

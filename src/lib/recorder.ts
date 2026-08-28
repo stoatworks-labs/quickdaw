@@ -63,6 +63,17 @@ import {
 
 const WORKLET_URL = new URL('capture-worklet.js', document.baseURI).href;
 
+/**
+ * How long to wait for a suspended context to start before carrying on.
+ *
+ * Generous, because a slow machine opening a device is not the case this is
+ * guarding against — a promise that never settles is.
+ */
+const RESUME_TIMEOUT_MS = 2500;
+
+/** Interactions that count as activation, for the one-shot resume. */
+const GESTURES = ['pointerdown', 'keydown', 'touchstart'] as const;
+
 /** Below this the meter reads "off the bottom" rather than a huge negative. */
 export const SILENCE_DB = -120;
 
@@ -137,6 +148,13 @@ export class Recorder {
   /** Absolute frames the producer has written since the graph started. */
   private absWrite = 0;
 
+  /**
+   * True while the audio is built but silent, waiting for a user gesture.
+   *
+   * Not an error: everything is connected and one click away from running.
+   */
+  needsGesture = false;
+
   status: EngineStatus = 'idle';
   info: EngineInfo = EMPTY_INFO;
   health: BufferHealth = EMPTY_HEALTH;
@@ -202,7 +220,7 @@ export class Recorder {
         latencyHint: 'playback',
       });
       this.ctx = ctx;
-      if (ctx.state === 'suspended') await ctx.resume();
+      await this.startContext(ctx);
       await ctx.audioWorklet.addModule(WORKLET_URL);
 
       // Two ways in, and everything downstream of here is identical for both.
@@ -320,6 +338,41 @@ export class Recorder {
     }
   }
 
+  /**
+   * Get the context running, without being able to hang on it.
+   *
+   * A browser will not start an AudioContext without a user gesture, and
+   * Chrome's way of saying so is not to reject — `resume()` returns a promise
+   * that simply **never settles** until activation arrives. Awaiting it bare
+   * means `open()` never returns, the UI sits on "Opening the device…" for ever,
+   * and nothing is logged, thrown or reported. It is the worst shape a failure
+   * can have.
+   *
+   * So the wait is bounded. If the context has not started, the graph is built
+   * anyway — it is perfectly valid, just silent — and a one-shot listener
+   * resumes it on the next real interaction, which is the only thing that can.
+   * The caller is told, so the UI can say what is needed rather than looking
+   * broken.
+   */
+  private async startContext(ctx: AudioContext): Promise<void> {
+    if (ctx.state !== 'suspended') return;
+    const started = await Promise.race([
+      ctx.resume().then(() => true),
+      new Promise<false>((r) => setTimeout(() => r(false), RESUME_TIMEOUT_MS)),
+    ]);
+    if (started || ctx.state !== 'suspended') return;
+
+    this.needsGesture = true;
+    const wake = () => {
+      void ctx.resume().then(() => {
+        this.needsGesture = false;
+        this.changed();
+      });
+      for (const e of GESTURES) window.removeEventListener(e, wake);
+    };
+    for (const e of GESTURES) window.addEventListener(e, wake, { once: true });
+  }
+
   async close(): Promise<void> {
     if (this.status === 'recording') await this.stop();
     this.node?.port.postMessage('stop');
@@ -343,6 +396,7 @@ export class Recorder {
     this.clips = null;
     this.meterSab = null;
     this.info = EMPTY_INFO;
+    this.needsGesture = false;
     if (this.status !== 'error') this.status = 'idle';
     this.changed();
   }
