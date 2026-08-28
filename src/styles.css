@@ -1,0 +1,494 @@
+/*
+ * Dark, and only dark. A recorder is used in a control room, a truck or the
+ * back of a hall, and a page that goes white when someone's OS theme changes is
+ * a page that has just blinded the person running the session.
+ *
+ * The meter colours live here as custom properties and are read by the canvas
+ * code, so the bars and the rest of the page cannot drift apart.
+ */
+
+:root {
+  --bg: #08090b;
+  --panel: #101318;
+  --panel-2: #161a21;
+  --line: #262c36;
+  --text: #e6ebf2;
+  --dim: #8b97a8;
+  --accent: #5b9dd9;
+  --danger: #d1453b;
+  --warn: #d8b13a;
+  --ok: #3ba55d;
+
+  --meter-back: #15181d;
+  --meter-low: #3ba55d;
+  --meter-mid: #d8b13a;
+  --meter-high: #d1453b;
+  --meter-hold: #e6ebf2;
+  --meter-rms: #8ea6c8;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app.fatal {
+  max-width: 620px;
+  padding-top: 15vh;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sub,
+.hint,
+.empty {
+  margin: 4px 0 0;
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.warn {
+  margin: 6px 0 0;
+  color: var(--warn);
+  font-size: 13px;
+}
+
+.warn.small {
+  font-size: 12px;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--danger) 16%, var(--panel));
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+}
+
+/* --- setup -------------------------------------------------------------- */
+
+.setup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px 24px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.field > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.path,
+.label {
+  color: var(--dim);
+  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+select,
+input[type='text'],
+input.col-name,
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+select {
+  max-width: 100%;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 0;
+  text-decoration: underline;
+}
+
+input[type='range'] {
+  accent-color: var(--accent);
+  min-width: 70px;
+}
+
+/* --- transport ---------------------------------------------------------- */
+
+.transport {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.transport-buttons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+button.record {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 22px;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+}
+
+button.record.active {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+  /* A recording indicator that does not move is one you stop believing. */
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    background: color-mix(in srgb, var(--danger) 72%, #000);
+  }
+}
+
+/* Anyone who set "reduce motion" has said they do not want this, and the
+   button is legible without it. */
+@media (prefers-reduced-motion: reduce) {
+  button.record.active {
+    animation: none;
+  }
+}
+
+.clock {
+  font: 600 22px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock.small {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.transport-meta {
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+.transport-meta p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.blocked {
+  color: var(--warn) !important;
+}
+
+.buffer {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--meter-back);
+  overflow: hidden;
+  flex: 1 1 120px;
+}
+
+.buffer-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}
+
+.stats {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- tracks ------------------------------------------------------------- */
+
+.tracks {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tracks-head,
+.track {
+  display: grid;
+  grid-template-columns: 34px minmax(90px, 1fr) 40px minmax(140px, 2fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.tracks-head {
+  background: var(--panel-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.track {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+
+.track.disarmed {
+  opacity: 0.5;
+}
+
+.col-num {
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+input.col-name {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+}
+
+button.arm {
+  padding: 2px 0;
+  width: 30px;
+  color: var(--dim);
+  text-align: center;
+}
+
+button.arm.on {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+}
+
+.col-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+canvas.meter {
+  flex: 1 1 auto;
+  height: 14px;
+  min-width: 60px;
+  border-radius: 3px;
+  background: var(--meter-back);
+}
+
+.readout {
+  width: 46px;
+  text-align: right;
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
+/* Latching. Only a person clearing it, or a new take, puts it back. */
+.readout.clip {
+  color: #fff;
+  background: var(--danger);
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+
+.col-mix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.col-mix input[type='range'] {
+  width: 68px;
+}
+
+button.tiny {
+  padding: 2px 7px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+button.tiny.on {
+  color: #08090b;
+  background: var(--warn);
+  border-color: var(--warn);
+}
+
+button.tiny.solo.on {
+  background: var(--accent);
+}
+
+/* --- takes -------------------------------------------------------------- */
+
+.takes {
+  padding: 16px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.take-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+button.take {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--panel-2);
+}
+
+.take-list li.current button.take {
+  border-color: var(--accent);
+}
+
+.take-name {
+  font-weight: 600;
+}
+
+.take-meta {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.take-gaps {
+  font-size: 12px;
+  color: var(--warn);
+}
+
+.player {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scrub {
+  width: 100%;
+}
+
+.version {
+  color: var(--dim);
+  font-size: 12px;
+  text-align: right;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--panel-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .tracks-head,
+  .track {
+    grid-template-columns: 28px 1fr 36px;
+    grid-template-areas:
+      'num name arm'
+      'meter meter meter'
+      'mix mix mix';
+  }
+
+  .col-num {
+    grid-area: num;
+  }
+
+  input.col-name {
+    grid-area: name;
+  }
+
+  button.arm {
+    grid-area: arm;
+  }
+
+  .col-meter {
+    grid-area: meter;
+  }
+
+  .col-mix {
+    grid-area: mix;
+  }
+
+  .tracks-head .col-meter,
+  .tracks-head .col-mix {
+    display: none;
+  }
+}

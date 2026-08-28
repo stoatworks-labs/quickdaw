@@ -1,0 +1,44 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: microphone=(self), camera=(), geolocation=(), display-capture=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://intake.stoatworks-labs.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+# The two policies above are not hardening — they are load-bearing. Together they
+# make the page cross-origin isolated, which is the only condition under which a
+# browser hands out a SharedArrayBuffer, and every buffer in QuickDaw is one:
+# the capture worklet writes into shared memory on the audio thread and a Worker
+# reads it. Remove either header and the app has nothing to record into, and
+# says so on load rather than degrading into something that glitches.
+#
+# `require-corp` blocks cross-origin subresources. Nothing here loads any — the
+# type is a system font stack, the icons are local, and the only external URL in
+# the document is an og:image, which is metadata rather than a fetch.
+#
+# `worker-src` allows blob: as well as 'self' because a bundler may emit a
+# worker as a blob URL; the two module workers here are same-origin files, and
+# the allowance costs nothing given `script-src` stays 'self'.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Never serve a stale worker: a cached sw.js is a cached update mechanism, and
+# the app would lose the ability to replace itself. Everything it caches is
+# content-hashed, so revalidating this one small file costs nothing.
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# The two AudioWorklet processors are in public/, so they are not content-hashed
+# and their URLs never change. Revalidate rather than pin them for a year, or a
+# fix to the capture path would reach nobody who had already run the app.
+/capture-worklet.js
+  Cache-Control: no-cache
+
+/playback-worklet.js
+  Cache-Control: no-cache

@@ -1,0 +1,40 @@
+# Cloudflare Worker config — static assets only.
+#
+# QuickDaw is a fully static SPA: no server code, and no audio ever leaves the
+# browser. It is still deployed as a *Worker* rather than a Pages project,
+# because that is what Cloudflare's "Import a repository" flow creates and what
+# the rest of the fleet uses.
+#
+# `[assets] directory` is the Worker form. The Pages form is
+# `pages_build_output_dir`, and the two are not interchangeable — a repo
+# carrying the Pages key fails a Worker build with "Could not detect a directory
+# containing static files", which reads like a missing build rather than the
+# wrong key.
+#
+# The build command and Node version are set in the Cloudflare project, not here:
+#   Build command:  npm ci && npm run build
+#   Deploy command: npx wrangler deploy
+#
+# `public/_headers` is copied into dist/ by Vite and is honoured by the assets
+# runtime. For this app that file is not optional decoration: it carries the
+# COOP/COEP pair that makes the page cross-origin isolated, and without cross-
+# origin isolation there is no SharedArrayBuffer and the recorder cannot run at
+# all. If a deploy ever comes up saying it is not isolated, _headers is the
+# first thing to check.
+#
+# There is deliberately no `_redirects`: the Pages way to route an SPA is a
+# `/*  /index.html  200` line there, and the assets runtime rejects it as an
+# infinite loop and fails the entire deploy. `not_found_handling` is the Worker
+# equivalent.
+name = "quickdaw"
+compatibility_date = "2026-07-30"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+# Attached here rather than by hand in the dashboard, so the hostname is part of
+# the repo and a fresh deploy cannot come up without it.
+[[routes]]
+pattern = "quickdaw.stoatworks-labs.com"
+custom_domain = true
