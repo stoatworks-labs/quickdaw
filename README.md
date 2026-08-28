@@ -2,7 +2,7 @@
 
 > **AI-assisted project.** This codebase was created with [Claude Code](https://claude.com/claude-code)
 > (Anthropic), directed and reviewed by a human author. The buffer arithmetic is verified
-> numerically — 56 tests pin the ring's behaviour across its 32-bit wrap and through an overrun,
+> numerically — 72 tests pin the ring's behaviour across its 32-bit wrap and through an overrun,
 > the WAV headers byte by byte, the 24-bit conversion against its own quantisation step, and the
 > mixer's solo and pan rules — and the central invariant, that a take is the same length as the
 > time it covers with every sample at the position it was captured at, is tested by driving a
@@ -127,7 +127,7 @@ was given.
 ```bash
 npm install
 npm run dev          # vite dev server, with the isolation headers
-npm test             # vitest — 56 tests
+npm test             # vitest — 72 tests
 npm run build        # tsc -b && vite build -> dist/
 npm run lint         # oxlint
 ```

@@ -105,6 +105,43 @@ export function describeProcessing(track: MediaStreamTrack): string[] {
   return ignored;
 }
 
+export type MicPermission = 'granted' | 'denied' | 'prompt' | 'unknown';
+
+/**
+ * Ask for microphone access, purely to unlock the device list.
+ *
+ * The stream is stopped the instant it arrives: this is not a capture, it is
+ * the only way a page is allowed to learn what audio hardware exists. Must be
+ * called from a user gesture — a browser will refuse a prompt that is not
+ * attached to one, and the refusal is indistinguishable from the user saying
+ * no.
+ *
+ * Deliberately unconstrained. Asking for a specific device or channel count
+ * here can fail on its own merits (`OverconstrainedError`) and report itself as
+ * a permission problem, which sends everyone looking in the wrong place.
+ */
+export async function requestAccess(): Promise<void> {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  closeStream(stream);
+}
+
+/**
+ * The current microphone permission, where the browser will say.
+ *
+ * `PermissionStatus` also fires `change`, which is how the app notices
+ * permission being revoked in site settings without a reload. Safari has no
+ * `microphone` permission name and throws, hence 'unknown' — which the UI
+ * treats as "offer the button", since asking twice is harmless and never
+ * asking is not.
+ */
+export async function micPermission(): Promise<PermissionStatus | null> {
+  try {
+    return await navigator.permissions?.query({ name: 'microphone' as PermissionName });
+  } catch {
+    return null;
+  }
+}
+
 /** Stop every track on a stream. Not stopping one holds the device open. */
 export function closeStream(stream: MediaStream | null): void {
   if (!stream) return;
@@ -131,10 +168,22 @@ export async function openDevice(deviceId: string | null, channels = PROBE_CHANN
 /**
  * List the audio inputs, with channel counts where they are already known.
  *
- * Labels are empty until the user has granted microphone permission at least
- * once — that is the browser refusing to let a page fingerprint a machine it
- * has no business knowing about, not an error. The caller prompts, then lists
- * again.
+ * ## Nothing usable comes back before permission is granted
+ *
+ * Until the user has allowed microphone access at least once, a browser will
+ * not describe the machine's audio hardware to a page. Chrome does not return
+ * an empty list, which would be honest and obvious — it returns one entry per
+ * kind with an **empty `deviceId` and an empty label**. That entry is a
+ * placeholder saying "there is at least one input here", not a device that can
+ * be opened: `getUserMedia({ deviceId: { exact: '' } })` matches nothing.
+ *
+ * Those placeholders are filtered out, so an empty result here means exactly
+ * one thing — there is nothing selectable yet — and the caller's job is to ask
+ * for permission with `requestAccess` and list again. Leaving them in produced
+ * a genuine deadlock: they rendered as a pickable option whose value was the
+ * empty string, which is also the value of the "choose a device" placeholder,
+ * so choosing it was indistinguishable from choosing nothing and the code that
+ * would have triggered the permission prompt never ran.
  */
 export async function listDevices(known: Map<string, DeviceInfo> = new Map()): Promise<DeviceInfo[]> {
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -144,6 +193,9 @@ export async function listDevices(known: Map<string, DeviceInfo> = new Map()): P
     // device that is also in the list, and picking one means the OS can move
     // the recording to a different interface mid-take without telling anyone.
     .filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications')
+    // The pre-permission placeholder. See the note above — this is the filter
+    // whose absence deadlocked the device picker.
+    .filter((d) => d.deviceId !== '')
     .map((d) => {
       const prior = known.get(d.deviceId);
       return {

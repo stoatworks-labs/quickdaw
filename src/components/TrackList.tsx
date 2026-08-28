@@ -22,12 +22,14 @@ import type { Level, Track } from '../types';
 
 interface Props {
   tracks: Track[];
+  /** Inputs the open device actually has. 0 when nothing is open. */
+  channels: number;
   recording: boolean;
   onChange: (input: number, patch: Partial<Track>) => void;
   onClearSolo: () => void;
 }
 
-export function TrackList({ tracks, recording, onChange, onClearSolo }: Props) {
+export function TrackList({ tracks, channels, recording, onChange, onClearSolo }: Props) {
   const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
   const readouts = useRef<(HTMLSpanElement | null)[]>([]);
   const anySolo = tracks.some((t) => t.soloed);
@@ -111,7 +113,11 @@ export function TrackList({ tracks, recording, onChange, onClearSolo }: Props) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  if (tracks.length === 0) {
+  // Track names, arm state and mix settings persist, so reconnecting the same
+  // interface keeps the labelling. The *rows* must not persist with them: a
+  // list of tracks on a page with no device open describes hardware that is not
+  // there, with meters that can never move.
+  if (channels === 0 || tracks.length === 0) {
     return <p className="empty">Choose an interface and its inputs appear here, one track each.</p>;
   }
 

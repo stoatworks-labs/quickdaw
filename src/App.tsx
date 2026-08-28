@@ -11,7 +11,7 @@ import { MeterBridge } from './components/MeterBridge';
 import { TakePanel } from './components/TakePanel';
 import { isolationAvailable, recorder } from './lib/recorder';
 import { player } from './lib/player';
-import { listDevices } from './lib/devices';
+import { listDevices, micPermission, requestAccess, type MicPermission } from './lib/devices';
 import {
   canPickDirectory,
   ensurePermission,
@@ -25,6 +25,10 @@ import { useStore } from './store';
 import type { DeviceInfo, TakeManifest } from './types';
 
 declare const __APP_VERSION__: string;
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 /**
  * Subscribe to an engine's structural changes.
@@ -59,6 +63,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [masterGainDb, setMasterGainDb] = useState(0);
+  const [permission, setPermission] = useState<MicPermission>('unknown');
   const [loadedTake, setLoadedTake] = useState<TakeManifest | null>(null);
 
   useEngineVersion(useCallback((fn: () => void) => recorder.subscribe(fn), []));
@@ -89,8 +94,65 @@ export default function App() {
     void loadSavedDirectory().then(setDirectory);
   }, []);
 
+  // Track the permission rather than assuming it. It can be granted in a
+  // previous session and still be revoked in site settings later, and the
+  // change event is how the picker empties itself instead of offering devices
+  // that can no longer be opened.
+  useEffect(() => {
+    let status: PermissionStatus | null = null;
+    let cancelled = false;
+    const onChange = () => {
+      if (!status) return;
+      setPermission(status.state as MicPermission);
+      void listDevices().then(setDevices);
+    };
+    void micPermission().then((s) => {
+      if (cancelled || !s) return;
+      status = s;
+      setPermission(s.state as MicPermission);
+      s.addEventListener('change', onChange);
+    });
+    return () => {
+      cancelled = true;
+      status?.removeEventListener('change', onChange);
+    };
+  }, []);
+
+  const grantAccess = useCallback(async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await requestAccess();
+      setPermission('granted');
+      // Only now does enumerateDevices return real ids and labels.
+      setDevices(await listDevices());
+    } catch (err) {
+      // Not every failure here is a refusal, and calling them all "denied"
+      // sends someone to the padlock menu to fix a machine with nothing plugged
+      // into it. The two cases need different sentences.
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setPermission('granted');
+        setNotice('No audio input devices were found. Connect an interface and rescan.');
+      } else if (name === 'NotAllowedError' || name === 'SecurityError') {
+        setPermission('denied');
+        setNotice(
+          'Microphone access was refused, so the browser will not say what audio hardware exists. ' +
+            'Allow it in the padlock menu in the address bar and try again.',
+        );
+      } else {
+        setNotice(`The audio device could not be opened: ${describeError(err)}`);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const chooseDevice = useCallback(
     async (id: string) => {
+      // An empty id is the "choose a device" placeholder, not a device. It used
+      // to be reachable from a real entry too — see listDevices — and returning
+      // silently here is what made that look like a dead dropdown.
       if (!id) return;
       setBusy(true);
       setNotice(null);
@@ -244,6 +306,8 @@ export default function App() {
         canPickDirectory={canPickDirectory()}
         busy={busy}
         recording={recording}
+        permission={permission}
+        onRequestAccess={() => void grantAccess()}
         preRoll={store.preRoll}
         preRollSeconds={store.preRollSeconds}
         format={store.format}
@@ -279,6 +343,7 @@ export default function App() {
 
       <TrackList
         tracks={store.tracks}
+        channels={recorder.channels}
         recording={recording}
         onChange={store.updateTrack}
         onClearSolo={store.clearSolo}

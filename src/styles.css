@@ -161,6 +161,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.primary {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 28%, var(--panel-2));
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
 button.link {
   background: none;
   border: none;

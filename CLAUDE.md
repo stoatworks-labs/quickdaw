@@ -8,7 +8,7 @@ Command reference. For the model, the invariants and the traps, read
 ```bash
 npm install
 npm run dev          # vite dev server — sends the COOP/COEP pair
-npm test             # vitest — 56 tests
+npm test             # vitest — 72 tests
 npm run test:watch
 npm run build        # tsc -b && vite build -> dist/
 npm run lint         # oxlint

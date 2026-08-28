@@ -124,6 +124,31 @@ is not hardening here, it is load-bearing** — a deploy that loses it comes up
 with a page that says it cannot run. There is deliberately no degraded fallback:
 one would be a recorder that glitches, which is worse than one that refuses.
 
+### Nothing about the audio hardware exists until permission is granted
+
+A browser will not describe the machine's audio devices to a page that has never
+been allowed a microphone. Chrome does not signal that with an empty list — it
+returns one placeholder entry per kind with an **empty `deviceId`** and an empty
+label. That entry cannot be opened: `deviceId: { exact: '' }` matches nothing.
+
+`listDevices` filters those out, so an empty result means exactly one thing:
+there is nothing selectable yet, and the caller must call `requestAccess` from a
+user gesture and list again. `Setup` shows an "Allow microphone access" button
+in place of the picker whenever the list is empty.
+
+**This was a deadlock, not a cosmetic gap.** The placeholder rendered as a
+pickable option whose value was the empty string — the same value as the "choose
+a device" placeholder — so selecting it was indistinguishable from selecting
+nothing, `chooseDevice` returned early on `if (!id)`, `getUserMedia` was never
+called, the prompt never appeared, and the list could therefore never be
+populated. The app shipped looking completely inert with no way out of it.
+`devices.test.ts` pins the filter.
+
+`requestAccess` asks for `{ audio: true }` and nothing else, then stops the
+stream immediately. Constraining it to a device or a channel count can fail on
+its own merits and report itself as a permission problem, which sends people
+looking in entirely the wrong place.
+
 ### Capture constraints must all be off
 
 `echoCancellation`, `noiseSuppression` and `autoGainControl` default to *on*,

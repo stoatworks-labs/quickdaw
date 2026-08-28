@@ -134,6 +134,38 @@ around two thousand a second, which is enough on its own to make the meters
 stutter on a page whose whole point is that nothing stutters. Read once, on
 mount.
 
+### The device picker could never be used at all
+
+Found 2026-08-28, on the deployed site, by Allan: the app loaded and then would
+neither ask for microphone permission nor let a device be selected.
+
+Before permission is granted, `enumerateDevices()` returns a placeholder entry
+with an empty `deviceId` and an empty label rather than an empty list. Nothing
+filtered it, so it was rendered as an `<option>` whose value was `''` — the same
+value as the "choose an audio input…" placeholder. Selecting the device was
+therefore literally the same event as selecting nothing, `chooseDevice`'s
+`if (!id) return` swallowed it, and since the only thing that triggers a
+permission prompt is asking for a stream, the prompt could never fire and the
+list could never fill in. A closed loop with no way out from inside the UI.
+
+The `chooseDevice` comment even said "labels are empty until permission has been
+granted once" — the label problem was known and handled; that the **deviceId**
+is also empty was not, and that is the half that broke it.
+
+Two things came out of it beyond the fix:
+
+- The permission state is now tracked through `navigator.permissions`, including
+  its `change` event, so revoking access in site settings empties the picker
+  rather than leaving entries that can no longer be opened.
+- `getUserMedia` failing is not one condition. `NotFoundError` means nothing is
+  plugged in; `NotAllowedError` means refused. Reporting both as "denied" sends
+  someone to the padlock menu to fix a machine with no interface connected.
+
+Also fixed in the same pass: the track rows were rendered from the persisted
+store, so a reload showed a full track list — with meters that could never move
+— on a page with no device open. Names and mix settings still persist; the rows
+are now gated on the open device's channel count.
+
 ### `source.channelCount` capped every interface at two inputs
 
 Found 2026-08-28 while building the meter bridge, and it would have made the
