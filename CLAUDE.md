@@ -8,7 +8,7 @@ Command reference. For the model, the invariants and the traps, read
 ```bash
 npm install
 npm run dev          # vite dev server — sends the COOP/COEP pair
-npm test             # vitest — 72 tests
+npm test             # vitest — 80 tests
 npm run test:watch
 npm run build        # tsc -b && vite build -> dist/
 npm run lint         # oxlint
@@ -43,6 +43,10 @@ declared in `wrangler.toml` rather than set in the dashboard.
 - The two AudioWorklet processors live in `public/` and are loaded by URL. They
   are not bundled, so they must be valid plain JS, and their layout constants
   arrive in `processorOptions` rather than being duplicated there.
+- **The test signal is the fastest check that anything works.** Pick "Test signal" in
+  the interface list — no hardware, no permission — and input 1 must read
+  **-18.0**. If it does not, the metering or the gain staging is wrong, and
+  nothing further is worth debugging until it does.
 - **Verify a take by its length.** Every interesting failure mode shows up as a
   take that is the wrong length. A stopwatch beats reading the code.
 - Public repo. "Commit" = commit **and** push.

@@ -27,7 +27,30 @@
  * going to a file, not to a converter that cares what rate it is.
  */
 
+import { TEST_CHANNELS } from './testsignal';
 import type { DeviceInfo } from '../types';
+
+/**
+ * The generated source's device id.
+ *
+ * Not a real device, and deliberately not an empty string or anything else a
+ * browser might hand back — it has to be impossible to confuse with a device id
+ * from `enumerateDevices`, because the whole point is that it takes a different
+ * path in `Recorder.open`.
+ */
+export const TEST_DEVICE_ID = 'quickdaw:test-signal';
+
+/** The generated source, as the picker sees it. */
+export function testDevice(): DeviceInfo {
+  return {
+    deviceId: TEST_DEVICE_ID,
+    label: `Test signal — ${TEST_CHANNELS} generated channels`,
+    channels: TEST_CHANNELS,
+    // Whatever the context ends up at. Nothing about a generated source has an
+    // opinion on the rate, so it does not claim one.
+    sampleRate: 0,
+  };
+}
 
 /**
  * Channels to ask for when probing.
@@ -187,7 +210,7 @@ export async function openDevice(deviceId: string | null, channels = PROBE_CHANN
  */
 export async function listDevices(known: Map<string, DeviceInfo> = new Map()): Promise<DeviceInfo[]> {
   const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices
+  const real = devices
     .filter((d) => d.kind === 'audioinput')
     // The synthetic "default"/"communications" entries are aliases for a real
     // device that is also in the list, and picking one means the OS can move
@@ -205,6 +228,15 @@ export async function listDevices(known: Map<string, DeviceInfo> = new Map()): P
         sampleRate: prior?.sampleRate ?? 0,
       };
     });
+
+  // Last, not first: a real interface is what someone came here to record, and
+  // the generated source should never be the thing they reach for by accident.
+  return [...real, testDevice()];
+}
+
+/** The real hardware, with the generated source excluded. */
+export function realDevices(devices: DeviceInfo[]): DeviceInfo[] {
+  return devices.filter((d) => d.deviceId !== TEST_DEVICE_ID);
 }
 
 /**
@@ -216,6 +248,10 @@ export async function listDevices(known: Map<string, DeviceInfo> = new Map()): P
  * rate against every other application on the machine.
  */
 export async function probeDevice(deviceId: string): Promise<DeviceInfo> {
+  // The generated source needs no permission and no stream, which is most of
+  // why it exists: the app is never a dead end for someone with no interface,
+  // or who has refused the microphone prompt.
+  if (deviceId === TEST_DEVICE_ID) return testDevice();
   const open = await openDevice(deviceId);
   closeStream(open.stream);
   const devices = await navigator.mediaDevices.enumerateDevices();

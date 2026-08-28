@@ -45,7 +45,8 @@ import {
   unwrapPosition,
   type RingLayout,
 } from './ring';
-import { closeStream, describeProcessing, openDevice, probeDevice } from './devices';
+import { TEST_DEVICE_ID, closeStream, describeProcessing, openDevice, probeDevice } from './devices';
+import { TEST_CHANNELS, createTestSource, type TestSource } from './testsignal';
 import { takeFolderName } from './storage';
 import type { FromWriter, StartMessage } from '../workers/writer';
 import {
@@ -120,11 +121,12 @@ export class Recorder {
   private ctx: AudioContext | null = null;
   private stream: MediaStream | null = null;
   private node: AudioWorkletNode | null = null;
-  private source: MediaStreamAudioSourceNode | null = null;
+  private source: AudioNode | null = null;
   private sink: GainNode | null = null;
   private monitorGain: GainNode | null = null;
   private worker: Worker | null = null;
   private wakeLock: WakeLockSentinel | null = null;
+  private test: TestSource | null = null;
 
   private ring: RingLayout | null = null;
   private ctrl: Int32Array | null = null;
@@ -203,20 +205,36 @@ export class Recorder {
       if (ctx.state === 'suspended') await ctx.resume();
       await ctx.audioWorklet.addModule(WORKLET_URL);
 
-      const open = await openDevice(deviceId, probed.channels || 2);
-      const source = ctx.createMediaStreamSource(open.stream);
-      this.stream = open.stream;
-      // The source node's own count is the authority: it is what the graph will
-      // actually deliver, and it can be lower than the track admitted to.
-      // The track's own setting is the authority, and `source.channelCount` is
-      // NOT a second opinion on it — for a source node it is an *input*-side
-      // mixing property, and a source node has no inputs. On a
-      // MediaStreamAudioSourceNode it reads 2 no matter how many channels the
-      // stream actually carries, so clamping to it silently caps every
-      // interface at two inputs. (A ChannelMergerNode makes the same point
-      // loudly: its channelCount is fixed at 1 while its output has as many
-      // channels as it has inputs.)
-      const channels = Math.max(1, open.channels);
+      // Two ways in, and everything downstream of here is identical for both.
+      // The generated source is not a mock of the capture path — it is a real
+      // AudioNode feeding the real worklet, so a take made from it exercises
+      // the ring, the writer and the files exactly as a live interface does.
+      let source: AudioNode;
+      let channels: number;
+      let ignored: string[] = [];
+      let track: MediaStreamTrack | null = null;
+
+      if (deviceId === TEST_DEVICE_ID) {
+        const test = createTestSource(ctx);
+        this.test = test;
+        source = test.node;
+        channels = TEST_CHANNELS;
+      } else {
+        const open = await openDevice(deviceId, probed.channels || 2);
+        this.stream = open.stream;
+        track = open.track;
+        source = ctx.createMediaStreamSource(open.stream);
+        // The track's own setting is the authority, and `source.channelCount`
+        // is NOT a second opinion on it — for a source node it is an *input*-
+        // side mixing property, and a source node has no inputs. On a
+        // MediaStreamAudioSourceNode it reads 2 no matter how many channels the
+        // stream actually carries, so clamping to it silently caps every
+        // interface at two inputs. (A ChannelMergerNode makes the same point
+        // loudly: its channelCount is fixed at 1 while its output has as many
+        // channels as it has inputs.)
+        channels = Math.max(1, open.channels);
+        ignored = describeProcessing(open.track);
+      }
       this.source = source;
 
       const frames = Math.round((preRollSeconds + WRITE_HEADROOM_SECONDS) * ctx.sampleRate);
@@ -276,7 +294,7 @@ export class Recorder {
         channels,
         sampleRate: ctx.sampleRate,
         contextRate: ctx.sampleRate,
-        ignored: describeProcessing(open.track),
+        ignored,
         ringFrames: ring.capacity,
         ringBytes: AUDIO_OFFSET + channels * ring.capacity * 4,
         preRollFrames: Math.round(preRollSeconds * ctx.sampleRate),
@@ -287,8 +305,9 @@ export class Recorder {
       }
 
       // An interface unplugged mid-take ends the track rather than erroring.
-      // Without this the recording quietly becomes silence.
-      open.track.addEventListener('ended', () => {
+      // Without this the recording quietly becomes silence. The generated
+      // source has no track and cannot go away.
+      track?.addEventListener('ended', () => {
         if (this.status === 'recording') void this.stop();
         this.fail('the audio device went away');
       });
@@ -304,6 +323,8 @@ export class Recorder {
   async close(): Promise<void> {
     if (this.status === 'recording') await this.stop();
     this.node?.port.postMessage('stop');
+    this.test?.stop();
+    this.test = null;
     this.node?.disconnect();
     this.source?.disconnect();
     this.sink?.disconnect();

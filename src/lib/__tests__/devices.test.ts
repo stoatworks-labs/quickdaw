@@ -12,7 +12,14 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { captureConstraints, describeProcessing, listDevices } from '../devices';
+import {
+  captureConstraints,
+  describeProcessing,
+  listDevices,
+  realDevices,
+  TEST_DEVICE_ID,
+} from '../devices';
+import { TEST_CHANNELS } from '../testsignal';
 import type { DeviceInfo } from '../../types';
 
 function stubDevices(devices: Partial<MediaDeviceInfo>[]) {
@@ -28,7 +35,7 @@ describe('listDevices', () => {
     // Exactly what Chrome returns with no permission: one entry per kind, no id
     // and no label. It is a statement that hardware exists, not a device.
     stubDevices([{ kind: 'audioinput', deviceId: '', label: '' }]);
-    expect(await listDevices()).toEqual([]);
+    expect(realDevices(await listDevices())).toEqual([]);
   });
 
   it('drops "default" and "communications", which are aliases', async () => {
@@ -39,7 +46,7 @@ describe('listDevices', () => {
       { kind: 'audioinput', deviceId: 'communications', label: 'Communications' },
       { kind: 'audioinput', deviceId: 'abc123', label: 'Scarlett 18i20' },
     ]);
-    const got = await listDevices();
+    const got = realDevices(await listDevices());
     expect(got.map((d) => d.deviceId)).toEqual(['abc123']);
   });
 
@@ -49,7 +56,7 @@ describe('listDevices', () => {
       { kind: 'videoinput', deviceId: 'cam1', label: 'Webcam' },
       { kind: 'audioinput', deviceId: 'in1', label: 'Mic' },
     ]);
-    expect((await listDevices()).map((d) => d.deviceId)).toEqual(['in1']);
+    expect(realDevices(await listDevices()).map((d) => d.deviceId)).toEqual(['in1']);
   });
 
   it('carries a previous probe forward so the channel count survives a rescan', async () => {
@@ -57,15 +64,32 @@ describe('listDevices', () => {
     const known = new Map<string, DeviceInfo>([
       ['abc123', { deviceId: 'abc123', label: 'Scarlett 18i20', channels: 18, sampleRate: 48000 }],
     ]);
-    const [d] = await listDevices(known);
+    const [d] = realDevices(await listDevices(known));
     expect(d.channels).toBe(18);
     expect(d.sampleRate).toBe(48000);
   });
 
   it('says why a name is missing rather than showing a blank row', async () => {
     stubDevices([{ kind: 'audioinput', deviceId: 'abc123', label: '' }]);
-    const [d] = await listDevices();
+    const [d] = realDevices(await listDevices());
     expect(d.label).toMatch(/grant access/i);
+  });
+
+  it('always offers the generated source, last, whatever the hardware says', () => {
+    // The app must never be a dead end. With no interface, no permission, or a
+    // refused prompt, there is still something to record — and it is last in
+    // the list so it is never reached for by accident.
+    return (async () => {
+      stubDevices([]);
+      const empty = await listDevices();
+      expect(empty).toHaveLength(1);
+      expect(empty[0].deviceId).toBe(TEST_DEVICE_ID);
+      expect(empty[0].channels).toBe(TEST_CHANNELS);
+
+      stubDevices([{ kind: 'audioinput', deviceId: 'abc123', label: 'Scarlett' }]);
+      const withHardware = await listDevices();
+      expect(withHardware.map((d) => d.deviceId)).toEqual(['abc123', TEST_DEVICE_ID]);
+    })();
   });
 });
 

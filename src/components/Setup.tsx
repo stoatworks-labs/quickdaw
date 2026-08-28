@@ -12,7 +12,7 @@ import { PREROLL_SECONDS, WRITE_HEADROOM_SECONDS, type PreRollSeconds, type Samp
 import { SAMPLE_FORMATS, frameBytes } from '../lib/wav';
 import { formatBytes } from '../lib/format';
 import type { DeviceInfo } from '../types';
-import type { MicPermission } from '../lib/devices';
+import { realDevices, TEST_DEVICE_ID, type MicPermission } from '../lib/devices';
 
 interface Props {
   devices: DeviceInfo[];
@@ -91,57 +91,53 @@ export function Setup(props: Props) {
       <div className="field">
         <label htmlFor="device">Interface</label>
 
-        {/* A browser will not name — or even identify — the machine's audio
-            hardware until microphone access has been granted once. Before that
-            there is nothing to put in a dropdown, so the dropdown is not the
-            control: this button is. Showing an empty picker instead is how this
-            deadlocked, because the one thing that triggers the prompt is asking
-            for a stream, and nothing was ever able to ask. */}
-        {devices.length === 0 ? (
-          permission === 'denied' ? (
+        {/* The picker always has something in it, because the generated source
+            is always there and needs no permission. So the permission prompt is
+            no longer the control that stands in for the picker — it sits under
+            it, explaining why the hardware is missing from a list that works. */}
+        <div className="row">
+          <select
+            id="device"
+            value={deviceId ?? ''}
+            disabled={recording || busy}
+            onChange={(e) => onDevice(e.target.value)}
+          >
+            <option value="">Choose an audio input…</option>
+            {devices.map((d) => (
+              <option key={d.deviceId} value={d.deviceId}>
+                {d.label}
+                {d.channels && d.deviceId !== TEST_DEVICE_ID ? ` — ${d.channels} in` : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={onRefresh} disabled={recording || busy}>
+            Rescan
+          </button>
+        </div>
+
+        {realDevices(devices).length === 0 &&
+          (permission === 'denied' ? (
             <p className="warn">
               Microphone access is blocked for this site, so the browser will not say what audio
-              hardware exists. Allow it in the padlock menu in the address bar, then Rescan.
+              hardware exists. Allow it in the padlock menu in the address bar, then Rescan. The
+              test signal works without it.
             </p>
           ) : permission === 'granted' ? (
-            <div className="row">
-              <p className="hint">No audio inputs found. Connect an interface and rescan.</p>
-              <button type="button" onClick={onRefresh} disabled={busy}>
-                Rescan
-              </button>
-            </div>
+            <p className="hint">
+              No audio inputs found. Connect an interface and rescan — or use the test signal.
+            </p>
           ) : (
             <div className="row">
               <button type="button" className="primary" onClick={onRequestAccess} disabled={busy}>
                 {busy ? 'Waiting…' : 'Allow microphone access'}
               </button>
               <p className="hint">
-                Needed to list your interfaces — nothing is recorded until you press record, and no
-                audio leaves this machine.
+                Needed to list your interfaces. The test signal needs no permission and records the
+                same way, if you want to try it first.
               </p>
             </div>
-          )
-        ) : (
-          <div className="row">
-            <select
-              id="device"
-              value={deviceId ?? ''}
-              disabled={recording || busy}
-              onChange={(e) => onDevice(e.target.value)}
-            >
-              <option value="">Choose an audio input…</option>
-              {devices.map((d) => (
-                <option key={d.deviceId} value={d.deviceId}>
-                  {d.label}
-                  {d.channels ? ` — ${d.channels} in` : ''}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={onRefresh} disabled={recording || busy}>
-              Rescan
-            </button>
-          </div>
-        )}
+          ))}
+
         {channels > 0 && (
           <p className="hint">
             {channels} input{channels === 1 ? '' : 's'} at {sampleRate.toLocaleString()} Hz — one

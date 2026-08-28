@@ -230,6 +230,23 @@ sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
 **Do not redeploy in response to this.** Nothing about a redeploy touches the
 cached answer, and the deploy was never the problem.
 
+## The generated test signal, added 2026-08-28
+
+Offered twice and declined by silence, then added when it became load-bearing:
+the release needed screenshots, a hero image, a thumbnail and a video, and every
+one of them is a picture of the app doing its job. With nothing plugged in, that
+picture is an empty meter bridge.
+
+It earns its place beyond that. It is the only way to check the recorder before
+trusting a session to it, it needs no permission so the app is never a dead end,
+and input 1 is a real alignment tone at a real alignment level, which turns "do
+the meters work" into a number rather than an impression.
+
+Worth remembering for the next project: **a tool with no synthetic source cannot
+be photographed, filmed, or checked by anyone who does not already own the
+hardware.** simpleRTA had pink noise from the start and its video was
+straightforward for exactly that reason.
+
 ## Follow-ups, deliberately not done yet
 
 - **`about-data.js` is a hand-written placeholder.** Every other repo's copy is

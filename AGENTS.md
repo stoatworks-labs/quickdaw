@@ -244,6 +244,24 @@ a range inside a character class. That is not stylistic: the class carried a
 intended `* -` in an editor, matched something entirely different, and was
 invisible to review. `naming.test.ts` is what caught it.
 
+## 6b. The generated source
+
+`lib/testsignal.ts` builds eight channels of tone in the page and
+`Recorder.open` takes it instead of `getUserMedia` when the device id is
+`TEST_DEVICE_ID`. Everything downstream is identical — the same worklet, ring,
+writer and files — so it is a check rather than a demonstration, and a take made
+from it exercises what a real take does.
+
+It needs **no microphone permission**, which is the point: the app is never a
+dead end for someone with no interface or a refused prompt. It is listed
+**last**, so nobody reaches for it by accident.
+
+**Input 1 is a reference, not decoration**: 1 kHz at exactly -18 dBFS, and
+deliberately unmodulated. It is the one number on screen that can be checked
+against an expectation, and `testsignal.test.ts` pins it along with the rule
+that no channel — tremolo included — may reach full scale, because a source
+offered as a check must never light the clip indicator by itself.
+
 ## 7. How to verify a change
 
 There is no synthetic source to check against, the way simpleRTA has pink noise
@@ -251,6 +269,8 @@ There is no synthetic source to check against, the way simpleRTA has pink noise
 
 1. **`npm test`.** `chain.test.ts` is the one that matters for anything touching
    the ring, the writer or the pre-roll.
+1b. **Pick the test signal and read input 1.** It must say -18.0. No hardware,
+   no permission, two seconds, and it exercises the whole capture path.
 2. **Record a take and look at the buffer readout.** The fill bar should sit
    near the bottom and the "peak buffer" figure should stay low. A rising bar is
    the disk, not the audio.
@@ -269,6 +289,10 @@ There is no synthetic source to check against, the way simpleRTA has pink noise
 - **No punch-in, loop record, or arming during a take.**
 - **No 16-bit**, because undithered 16-bit is the wrong default to hand someone
   who did not think about it.
+- **No pink noise or sweep in the test signal.** Tones only. Noise would be the
+  better source for checking a *filter*, and there is no filter here — what this
+  app has to show is that eight discrete channels arrive at distinct, correct
+  levels, which tones say more clearly.
 - **No OPFS export path yet.** `storage.ts` can reach the origin private file
   system and the writer would work against it, but nothing in the UI offers it
   or exports from it — so on a browser without the File System Access API the
