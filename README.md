@@ -6,9 +6,13 @@
 > the WAV headers byte by byte, the 24-bit conversion against its own quantisation step, and the
 > mixer's solo and pan rules — and the central invariant, that a take is the same length as the
 > time it covers with every sample at the position it was captured at, is tested by driving a
-> producer and a consumer against each other through deliberate stalls. It has **not** yet been
-> run against a real multichannel interface: the channel mapping, the sample-rate matching and the
-> long-take behaviour are correct by construction and by test, and unproven against hardware.
+> producer and a consumer against each other through deliberate stalls. Both AudioWorklets have
+> been driven in a real browser from a synthetic source, and the header-patching the file format
+> depends on has been checked against the real filesystem API, coming back bit-exact and readable
+> by the browser's own decoder. It has **not** been run against a real multichannel interface, or
+> against a microphone at all: the channel mapping, the sample-rate matching, the disk throughput
+> and the long-take behaviour are correct by construction and by test, and unproven against
+> hardware.
 
 A multitrack audio recorder that runs entirely in a browser tab. Choose an interface, and QuickDaw
 gives you one track per input, mapped 1:1, streamed straight to a folder on your disk as WAV.

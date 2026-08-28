@@ -8,9 +8,48 @@ have actually bitten. Cross-cutting fleet knowledge lives in
 
 ## Status, 2026-08-28
 
-First build. Everything described in the README exists and the test suite
-passes (56 tests), but **nothing has been run against a real multichannel
-interface**. What that leaves unproven, specifically:
+First build. Everything described in the README exists, the test suite passes
+(56 tests), and both AudioWorklets plus the file-writing API have been driven in
+a real Chrome. **Nothing has been run against a real multichannel interface.**
+
+### Verified in-browser, 2026-08-28 (Chrome, dev server)
+
+Driven directly from the page rather than through the UI, because this machine
+has no audio input device — an oscillator into a `ChannelMerger` stands in for
+an interface.
+
+- **Capture worklet.** Three tones at 0.5 / 0.25 / 0.125 into three discrete
+  channels came out of the ring at exactly those amplitudes, so
+  `channelInterpretation: 'discrete'` is doing its job and nothing is being
+  folded. Meter peaks matched exactly and the RMS values were 0.354 / 0.177 /
+  0.088 — amplitude over root two, to three places, on all three. No false
+  clips, no silent frames, `CTRL_STARTED` set.
+- **`latencyHint: 'playback'` is honoured.** `baseLatency` came back as
+  21.3 ms — 1024 frames at 48 kHz, which is the large buffer that was asked for
+  rather than the interactive default.
+- **Playback worklet and mixer.** Centred at unity, three DC channels of 0.1 /
+  0.2 / 0.4 summed to 0.4950 against an expected 0.4950. Hard-panned with the
+  middle channel muted, the left/right ratio was exactly 0.25 = 0.1 / 0.4. All
+  coefficients zero produced true silence. Clearing `CTRL_RUN` stopped
+  consumption dead — the read position did not advance by one frame — which is
+  what makes a seek safe.
+- **The underrun path, by accident.** Two readings came back at exactly 15/16 of
+  their expected value: 128 frames of a 2048-sample analyser window, which is
+  one render quantum of silence from the crude JS refill loop falling behind.
+  The worklet did the right thing — emitted silence, counted it in
+  `CTRL_SILENT`, and kept its timing — and the arithmetic elsewhere in the same
+  window was exact.
+- **Seeking back to patch a WAV header.** The riskiest API assumption in the
+  whole design, since RIFF declares its length in its first bytes and a recorder
+  does not know that length until stop. Against a real
+  `FileSystemWritableFileStream` in OPFS: header written with zeroed sizes,
+  48 kB of audio streamed in chunks, then positions 4, 44 and 52 patched by
+  seeking backwards over data already written. Every size field came back
+  correct, the audio was **bit-exact** afterwards (worst error 0.0), and
+  Chrome's own `decodeAudioData` accepted the file — 12000 frames, 48 kHz, mono,
+  right sample values.
+
+### What that still leaves unproven
 
 - **Channel count.** Chrome supports multichannel input, but how many channels a
   given driver offers a browser is the driver's decision. `openDevice` asks for
@@ -26,6 +65,13 @@ interface**. What that leaves unproven, specifically:
   What a real disk does with 32 concurrent `FileSystemWritableFileStream`s at
   6 MB/s has not been measured. The buffer-health readout exists precisely so
   that first session produces a number rather than an impression.
+- **`getUserMedia` at all.** There is no audio input device on this Mac, so the
+  device picker, the probe/re-open sequence, the constraint read-back and the
+  `ended` handler have never run against a real stream. Everything downstream of
+  the worklet's input is verified; the path *into* it is not.
+- **The writer and reader Workers end to end.** Their arithmetic is unit-tested
+  and the API they depend on is verified above, but no take has been written by
+  the actual worker to an actual folder and played back.
 
 The first hardware session is where the real bugs are, as ever. Word the
 README's disclaimer so it can be replaced rather than rewritten when that
