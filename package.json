@@ -21,15 +21,15 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.0.4",
-    "oxlint": "^1.82.0",
+    "oxlint": "^1.83.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.1",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.132.0"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
