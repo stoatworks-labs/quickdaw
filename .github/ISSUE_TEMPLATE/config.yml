@@ -3,7 +3,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Report a problem without a GitHub account
-    url: https://stoatworks-labs.com/feedback?project=QuickDaw
+    url: https://stoatworks-labs.com/feedback?project=quickdaw
     about: >
       The same bug, feature and field-report forms on the website. No account needed —
       it reaches the same place.
