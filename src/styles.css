@@ -552,3 +552,6 @@ code {
     display: none;
   }
 }
+
+/* The footer's link to the tool's page on stoatworks-labs.com: the footer's own colour, not browser blue. */
+.version a { color: inherit; }

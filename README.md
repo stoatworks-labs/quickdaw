@@ -14,6 +14,8 @@ WAV.
 
 **[quickdaw.stoatworks-labs.com](https://quickdaw.stoatworks-labs.com)**
 
+There's more on [its page at stoatworks-labs.com](https://stoatworks-labs.com/web-tools/quickdaw/), along with [notes on running it on your own server](https://stoatworks-labs.com/web-tools/self-hosting/).
+
 ![QuickDaw recording eight inputs from its own generated test signal: the meter bridge
 across the top, one named track per input below, and a 60-second pre-roll buffer
 armed](docs/screenshots/hero.png)

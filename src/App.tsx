@@ -374,7 +374,9 @@ export default function App() {
         }}
       />
 
-      <footer className="version">{__APP_VERSION__}</footer>
+      <footer className="version">
+        {__APP_VERSION__} · <a href="https://stoatworks-labs.com/web-tools/quickdaw/" target="_blank" rel="noopener">stoatworks-labs.com</a>
+      </footer>
     </main>
   );
 }

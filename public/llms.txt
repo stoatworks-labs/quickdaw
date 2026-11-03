@@ -1,0 +1,15 @@
+# QuickDaw
+
+> A multitrack recorder that starts 30 seconds ago
+
+A multitrack recorder that runs entirely in a browser tab. Pick an audio interface and you get one track per input, mapped 1:1, streamed straight to a folder on disk as mono WAVs. A pre-roll buffer is always holding every input as it arrives, so pressing record puts the previous 30 seconds at the head of the take. If a disk stalls, the lost frames are padded with silence and logged in the take's manifest, so a gap costs you content but never time. There's also a generated test signal to check the whole chain without an interface, with a 1 kHz reference at exactly -18 dBFS.
+
+It's a Stoatworks Labs web tool: free, and it runs in a web browser.
+
+## Links
+
+- [QuickDaw, the app](https://quickdaw.stoatworks-labs.com/): runs in the browser, free
+- [Project page](https://stoatworks-labs.com/software/quickdaw/)
+- [Web tool page](https://stoatworks-labs.com/web-tools/quickdaw/)
+- [Source on GitHub](https://github.com/stoatworks-labs/quickdaw)
+- [Self-hosting](https://stoatworks-labs.com/web-tools/self-hosting/): run it on your own server

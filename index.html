@@ -7,7 +7,7 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Multitrack audio recorder in the browser: one track per interface input, a continuous pre-roll buffer, and takes streamed straight to a folder as WAV."
+      content="A free multitrack recorder that runs in a browser tab: one track per interface input, streamed to disk as WAV, with the previous 30 seconds already in hand when you press record."
     />
     <title>QuickDaw — multitrack recorder</title>
     <link rel="canonical" href="https://quickdaw.stoatworks-labs.com/" />
@@ -18,7 +18,7 @@
     <meta property="og:title" content="QuickDaw — multitrack recorder" />
     <meta
       property="og:description"
-      content="Multitrack audio recorder in the browser: one track per interface input, a continuous pre-roll buffer, and takes streamed straight to a folder as WAV."
+      content="A free multitrack recorder that runs in a browser tab: one track per interface input, streamed to disk as WAV, with the previous 30 seconds already in hand when you press record."
     />
     <!-- Card hosted on the main site: it is regenerated in place by the
          website's make_thumbnails.py and keeps its filename, so a copy
@@ -29,6 +29,38 @@
     <meta property="og:image:height" content="720" />
     <meta property="og:image:alt" content="QuickDaw — multitrack recorder" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- One entity with the tool's page on stoatworks-labs.com: same @id there. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "@id": "https://quickdaw.stoatworks-labs.com#app",
+        "name": "QuickDaw",
+        "url": "https://quickdaw.stoatworks-labs.com",
+        "description": "A free multitrack recorder that runs in a browser tab: one track per interface input, streamed to disk as WAV, with the previous 30 seconds already in hand when you press record.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any (runs in a web browser)",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP"
+        },
+        "author": {
+          "@id": "https://stoatworks-labs.com/#organization",
+          "@type": "Organization",
+          "name": "Stoatworks Labs",
+          "url": "https://stoatworks-labs.com/"
+        },
+        "publisher": {
+          "@id": "https://stoatworks-labs.com/#organization"
+        },
+        "sameAs": [
+          "https://stoatworks-labs.com/web-tools/quickdaw/",
+          "https://github.com/stoatworks-labs/quickdaw"
+        ]
+      }
+    </script>
     <meta name="twitter:image" content="https://stoatworks-labs.com/thumbs/quickdaw.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- iOS ignores the manifest's icons and wants a PNG of its own. -->
@@ -37,6 +69,17 @@
     <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
+    <noscript>
+      <h1>QuickDaw</h1>
+      <p>A multitrack recorder that starts 30 seconds ago.</p>
+      <p>A multitrack recorder that runs entirely in a browser tab. Pick an audio interface and you get one track per input, mapped 1:1, streamed straight to a folder on disk as mono WAVs. A pre-roll buffer is always holding every input as it arrives, so pressing record puts the previous 30 seconds at the head of the take. If a disk stalls, the lost frames are padded with silence and logged in the take's manifest, so a gap costs you content but never time. There's also a generated test signal to check the whole chain without an interface, with a 1 kHz reference at exactly -18 dBFS.</p>
+      <p>QuickDaw runs in the browser and needs JavaScript.</p>
+      <ul>
+        <li><a href="https://stoatworks-labs.com/software/quickdaw/">QuickDaw on stoatworks-labs.com</a></li>
+        <li><a href="https://github.com/stoatworks-labs/quickdaw">Source on GitHub</a></li>
+        <li><a href="https://stoatworks-labs.com/web-tools/self-hosting/">Running it on your own server</a></li>
+      </ul>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!--
