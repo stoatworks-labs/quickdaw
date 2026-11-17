@@ -31,8 +31,10 @@ export function meterColours(el: Element): MeterColours {
     high: read('--meter-high', '#d1453b'),
     hold: read('--meter-hold', '#e6ebf2'),
     rms: read('--meter-rms', '#8ea6c8'),
-    grid: read('--line', '#262c36'),
-    label: read('--dim', '#8b97a8'),
+    // The meters sit on the dark stage in both colour schemes, so their grid
+    // and labels have their own properties rather than the page's line and dim.
+    grid: read('--meter-grid', '#262c36'),
+    label: read('--meter-label', '#8b97a8'),
   };
 }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
       content="A free multitrack recorder that runs in a browser tab: one track per interface input, streamed to disk as WAV, with the previous 30 seconds already in hand when you press record."
@@ -65,8 +65,9 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- iOS ignores the manifest's icons and wants a PNG of its own. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
+    <!-- The navy of the header bar, which stays navy in both modes. -->
+    <meta name="theme-color" content="#0e2942" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e2942" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
     <noscript>

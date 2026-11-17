@@ -254,18 +254,29 @@ export default function App() {
 
   if (!isolated) {
     return (
-      <main className="app fatal">
-        <h1>QuickDaw</h1>
-        <p>
-          This page is not cross-origin isolated, so it cannot allocate the shared buffer the
-          recorder is built on.
-        </p>
-        <p className="hint">
-          The deployed site sends the two headers that grant it, and so do <code>npm run dev</code>{' '}
-          and <code>npm run preview</code>. A build served by anything else — or opened from a file
-          path — will land here.
-        </p>
-      </main>
+      <>
+        <header className="sw-bar top">
+          <div className="top-inner">
+            <h1 className="sw-brand">
+              <span className="sw-mark" aria-hidden="true">●</span> QuickDaw
+            </h1>
+            <button type="button" data-stoatworks-about>
+              About
+            </button>
+          </div>
+        </header>
+        <main className="app fatal">
+          <p>
+            This page is not cross-origin isolated, so it cannot allocate the shared buffer the
+            recorder is built on.
+          </p>
+          <p className="hint">
+            The deployed site sends the two headers that grant it, and so do <code>npm run dev</code>{' '}
+            and <code>npm run preview</code>. A build served by anything else — or opened from a file
+            path — will land here.
+          </p>
+        </main>
+      </>
     );
   }
 
@@ -281,15 +292,24 @@ export default function App() {
           : null;
 
   return (
-    <main className="app">
-      <header>
-        <h1>QuickDaw</h1>
-        <p className="sub">
+    <>
+    <header className="sw-bar top">
+      <div className="top-inner">
+        <h1 className="sw-brand">
+          <span className="sw-mark" aria-hidden="true">●</span> QuickDaw
+        </h1>
+        <p className="sw-sub">
           Multitrack recorder. One track per input, straight to disk, with the last{' '}
           {store.preRollSeconds} seconds already in hand.
         </p>
-      </header>
-
+        {/* Opens the shared About dialog: public/about.js delegates this
+            attribute from the document, so nothing needs importing here. */}
+        <button type="button" data-stoatworks-about>
+          About
+        </button>
+      </div>
+    </header>
+    <main className="app">
       {(recorder.lastError || notice) && (
         <p className="error" role="alert">
           {notice ?? recorder.lastError}
@@ -378,5 +398,6 @@ export default function App() {
         {__APP_VERSION__} · <a href="https://stoatworks-labs.com/web-tools/quickdaw/" target="_blank" rel="noopener">stoatworks-labs.com</a>
       </footer>
     </main>
+    </>
   );
 }
